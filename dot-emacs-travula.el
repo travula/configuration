@@ -44,10 +44,12 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(ansi-color-names-vector ["#2e3436" "#a40000" "#4e9a06" "#c4a000" "#204a87" "#5c3566" "#729fcf" "#eeeeec"])
+ '(column-number-mode t)
+ '(custom-enabled-themes (quote (wheatgrass)))
  '(initial-frame-alist (quote ((fullscreen . maximized))))
- '(quack-programs
-   (quote
-    ("mzscheme" "bigloo" "csi" "csi -hygienic" "gosh" "gracket" "gsi" "gsi ~~/syntax-case.scm -" "guile" "kawa" "mit-scheme" "racket" "racket -il typed/racket" "rs" "scheme" "scheme48" "scsh" "sisc" "stklos" "sxi"))))
+ '(quack-programs (quote ("mzscheme" "bigloo" "csi" "csi -hygienic" "gosh" "gracket" "gsi" "gsi ~~/syntax-case.scm -" "guile" "kawa" "mit-scheme" "racket" "racket -il typed/racket" "rs" "scheme" "scheme48" "scsh" "sisc" "stklos" "sxi")))
+ '(show-paren-mode t))
 
 (setq font-string 
 ;      "-*-Courier-medium-r-normal-*-18-*-*-*-m-*-iso8859-1"
@@ -65,7 +67,7 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- )
+ '(default ((t (:family "DejaVu Sans Mono" :foundry "unknown" :slant normal :weight normal :height 158 :width normal)))))
 
 ;; Don't use TABS for indentations.
 (setq-default indent-tabs-mode nil)
@@ -191,3 +193,22 @@
 
 (load-library "ox-reveal")
 
+;;; dired
+;;; =====
+(add-hook 'dired-load-hook
+  (function 
+    (lambda ()
+      (setq dired-copy-preserve-time t)
+      (setq dired-recursive-copies 'top)
+      (setq dired-dwim-target t) ;
+					; set dired-do-rename's
+					; default
+					; target to the
+					; other window
+      (define-key dired-mode-map "b" 'browse-url-of-dired-file)
+      (load "dired-x")
+      (define-key dired-mode-map "z" 'dired-remote-copy)
+      (define-key dired-mode-map "r" 'rsync-se-101) 
+      (define-key dired-mode-map "T" 'dired-trash-files)
+      (define-key dired-mode-map "\C-ca" 'dired-acroread-file)
+      )))
