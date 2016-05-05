@@ -13,12 +13,19 @@
 
 (require 'package)
 
-(add-to-list 'package-archives
-            '("melpa" . "http://melpa.milkbox.net/packages/") t)
+;;(add-to-list 'package-archives
+;;            '("melpa" . "http://melpa.milkbox.net/packages/") t)
 (add-to-list 'package-archives
              '("gnu" . "http://elpa.gnu.org/packages/") t)
 (add-to-list 'package-archives 
              '("org" . "http://orgmode.org/elpa/") t)
+
+;;(add-to-list 'package-archives
+;;             '("melpa-stable" . "https://stable.melpa.org/packages/") t)
+
+;;(add-to-list 'package-archives
+;;             '("melpa" . "https://melpa.org/packages/") t)
+
 
 (package-initialize)
 
@@ -60,8 +67,6 @@
       "-*-Courier-bold-r-normal-*-24-*-*-*-m-*-iso8859-1"
 )
 
-
-
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -96,8 +101,6 @@
 ;; Make org-mode work with files ending in .org
 ;; (add-to-list 'auto-mode-alist '("\\.org$" . org-mode))
 ;; The above is the default in recent emacsen
-
-
 
 ;;;Indentation is automatically added. When a tab is pressed it is replaced
 ;;;with 4 spaces. When backspace is pressed on an empty line, the cursor will
@@ -212,3 +215,40 @@
       (define-key dired-mode-map "T" 'dired-trash-files)
       (define-key dired-mode-map "\C-ca" 'dired-acroread-file)
       )))
+
+;;; span 
+
+;;;  for adding spans to elements
+
+;;; Now you can type links such as:
+
+;;; Check out this [[span:special][text block]].
+;;; Which generates HTML output like:
+
+;;; <p>Check out this <span class="special">text block</span>.</p>
+
+;;; https://korewanetadesu.com/org-mode-spans.html
+(defun jw/html-escape-attribute (value)
+  "Entity-escape VALUE and wrap it in quotes."
+  ;; http://www.w3.org/TR/2009/WD-html5-20090212/serializing-html-fragments.html
+  ;;
+  ;; "Escaping a string... consists of replacing any occurrences of
+  ;; the "&" character by the string "&amp;", any occurrences of the
+  ;; U+00A0 NO-BREAK SPACE character by the string "&nbsp;", and, if
+  ;; the algorithm was invoked in the attribute mode, any occurrences
+  ;; of the """ character by the string "&quot;"..."
+  (let* ((value (replace-regexp-in-string "&" "&amp;" value))
+         (value (replace-regexp-in-string "\u00a0" "&nbsp;" value))
+         (value (replace-regexp-in-string "\"" "&quot;" value)))
+    value))
+
+
+(eval-after-load "org"
+  '(org-add-link-type
+    "span" #'ignore ; not an 'openable' link
+    #'(lambda (class desc format)
+        (pcase format
+          (`html (format "<span class=\"%s\">%s</span>"
+                         (jw/html-escape-attribute class)
+                         (or desc "")))
+          (_ (or desc ""))))))
