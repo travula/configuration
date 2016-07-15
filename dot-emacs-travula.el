@@ -15,17 +15,19 @@
 
 ;;(add-to-list 'package-archives
 ;;            '("melpa" . "http://melpa.milkbox.net/packages/") t)
+
+
+;;(add-to-list 'package-archives
+;;           '("melpa" . "http://melpa.org/packages/") t)
+
+;;(add-to-list 'package-archives
+;;             '("gnu" . "http://elpa.gnu.org/packages/") t)
+
+;;(add-to-list 'package-archives 
+;;             '("org" . "http://orgmode.org/elpa/") t)
+
 (add-to-list 'package-archives
-             '("gnu" . "http://elpa.gnu.org/packages/") t)
-(add-to-list 'package-archives 
-             '("org" . "http://orgmode.org/elpa/") t)
-
-;;(add-to-list 'package-archives
-;;             '("melpa-stable" . "https://stable.melpa.org/packages/") t)
-
-;;(add-to-list 'package-archives
-;;             '("melpa" . "https://melpa.org/packages/") t)
-
+           '("melpa-stable" . "https://stable.melpa.org/packages/") t)
 
 (package-initialize)
 
@@ -55,6 +57,7 @@
  '(column-number-mode t)
  '(custom-enabled-themes (quote (wheatgrass)))
  '(initial-frame-alist (quote ((fullscreen . maximized))))
+ '(org-agenda-files (quote ("~/web-app-short-course/src/data-model/index.org")))
  '(quack-programs (quote ("mzscheme" "bigloo" "csi" "csi -hygienic" "gosh" "gracket" "gsi" "gsi ~~/syntax-case.scm -" "guile" "kawa" "mit-scheme" "racket" "racket -il typed/racket" "rs" "scheme" "scheme48" "scsh" "sisc" "stklos" "sxi")))
  '(show-paren-mode t))
 
@@ -106,6 +109,9 @@
 ;;;with 4 spaces. When backspace is pressed on an empty line, the cursor will
 ;;;jump to the previous indentation level.
 
+(setq auto-mode-alist 
+      (append '(("\\.rkt" . tuareg-mode))
+              auto-mode-alist))
 
 (autoload 'python-mode "python-mode" "Python Mode." t)
 (add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
@@ -216,39 +222,80 @@
       (define-key dired-mode-map "\C-ca" 'dired-acroread-file)
       )))
 
-;;; span 
-
-;;;  for adding spans to elements
-
-;;; Now you can type links such as:
-
-;;; Check out this [[span:special][text block]].
-;;; Which generates HTML output like:
-
-;;; <p>Check out this <span class="special">text block</span>.</p>
-
-;;; https://korewanetadesu.com/org-mode-spans.html
-(defun jw/html-escape-attribute (value)
-  "Entity-escape VALUE and wrap it in quotes."
-  ;; http://www.w3.org/TR/2009/WD-html5-20090212/serializing-html-fragments.html
-  ;;
-  ;; "Escaping a string... consists of replacing any occurrences of
-  ;; the "&" character by the string "&amp;", any occurrences of the
-  ;; U+00A0 NO-BREAK SPACE character by the string "&nbsp;", and, if
-  ;; the algorithm was invoked in the attribute mode, any occurrences
-  ;; of the """ character by the string "&quot;"..."
-  (let* ((value (replace-regexp-in-string "&" "&amp;" value))
-         (value (replace-regexp-in-string "\u00a0" "&nbsp;" value))
-         (value (replace-regexp-in-string "\"" "&quot;" value)))
-    value))
+;; for the span links
+(load "~/.emacs.d/custom/span-links")
 
 
-(eval-after-load "org"
-  '(org-add-link-type
-    "span" #'ignore ; not an 'openable' link
-    #'(lambda (class desc format)
-        (pcase format
-          (`html (format "<span class=\"%s\">%s</span>"
-                         (jw/html-escape-attribute class)
-                         (or desc "")))
-          (_ (or desc ""))))))
+(defun pprint-load-path ()
+  (mapconcat 'identity load-path  "\n"))
+
+(add-to-list 'org-structure-template-alist 
+             '("head" 
+               "#+TITLE: ?
+#+AUTHOR:VLEAD
+#+DATE:
+#+SETUPFILE: ./org-templates/level-0.org
+#+TAGS: boilerplate(b)
+#+EXCLUDE_TAGS: boilerplate
+#+OPTIONS: ^:nil\n"))
+
+
+(add-hook 'scheme-mode-hook 'racket-mode)
+;;; Set up for OCMAL (https://github.com/realworldocaml/book/wiki/Installation-Instructions#emacs)))
+;;;;
+
+(load "/home/travula/.opam/system/share/emacs/site-lisp/tuareg-site-file")
+(setq auto-mode-alist 
+      (append '(("\\.ml[ily]?$" . tuareg-mode)
+                ("\\.topml$" . tuareg-mode))
+              auto-mode-alist))
+
+
+;; -- opam and utop setup --------------------------------
+;; Setup environment variables using opam
+(dolist
+   (var (car (read-from-string
+           (shell-command-to-string "opam config env --sexp"))))
+ (setenv (car var) (cadr var)))
+;; Update the emacs path
+(setq exec-path (split-string (getenv "PATH") path-separator))
+;; Update the emacs load path
+(push (concat (getenv "OCAML_TOPLEVEL_PATH")
+          "/../../share/emacs/site-lisp") load-path)
+;; Automatically load utop.el
+(autoload 'utop "utop" "Toplevel for OCaml" t)
+(autoload 'utop-minor-mode "utop" "Minor mode for utop" t)
+(add-hook 'tuareg-mode-hook 'utop-minor-mode)
+
+
+;; -- merlin setup ---------------------------------------
+
+(setq opam-share (substring (shell-command-to-string "opam config var share") 0 -1))
+(add-to-list 'load-path (concat opam-share "/emacs/site-lisp"))
+(require 'merlin)
+
+;; Enable Merlin for ML buffers
+(add-hook 'tuareg-mode-hook 'merlin-mode)
+
+;; So you can do it on a mac, where `C-<up>` and `C-<down>` are used
+;; by spaces.
+(define-key merlin-mode-map
+  (kbd "C-c <up>") 'merlin-type-enclosing-go-up)
+(define-key merlin-mode-map
+  (kbd "C-c <down>") 'merlin-type-enclosing-go-down)
+(set-face-background 'merlin-type-face "#88FF44")
+
+;; -- enable auto-complete -------------------------------
+;; Not required, but useful along with merlin-mode
+(require 'auto-complete)
+(add-hook 'tuareg-mode-hook 'auto-complete-mode)
+
+
+(setq opam-share (substring (shell-command-to-string "opam config var share") 0 -1))
+(require 'ocp-indent)
+
+(defvar org-babel-use-quick-and-dirty-noweb-expansion t
+  "Set to true to use regular expressions to expand noweb references.
+This results in much faster noweb reference expansion but does
+not properly allow code blocks to inherit the \":noweb-ref\"
+header argument from buffer or subtree wide properties.")
